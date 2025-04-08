@@ -10,6 +10,32 @@ This repository provides an object cache implementation for WordPress using Memc
 
 ## Configuration
 
+### WordPress Configuration
+Add the following lines to your `wp-config.php` file to enable and configure the object cache:
+
+```php
+define('WP_CACHE', true);
+define('WP_CACHE_KEY_PREFIX', 'mysite_'); // Optional
+define('WP_CACHE_MEMCACHED_SERVER', '127.0.0.1'); // Optional
+define('WP_CACHE_MEMCACHED_PORT', 11211); // Optional
+define('WP_CACHE_DEFAULT_EXPIRE', 3600); // Optional, 1 hour
+define('WP_CACHE_IGNORE_FAILURES', true); // Continue on cache failures
+define('WP_CACHE_MAX_RETRIES', 2); // Optional
+define('WP_CACHE_RETRY_DELAY', 100); // Optional
+define('WP_CACHE_DEBUG', false); // Optional, controls error logging verbosity
+```
+
+### Security
+- **IP Whitelisting**: Only connections from whitelisted IPs are allowed. Update the IP list in the code if needed.
+- **SASL Authentication**: If using `Memcached`, you can enable SASL authentication by providing a username and password in the code.
+
+### Performance Monitoring
+- **Microtiming**: Cache operations (e.g., `GET`) are timed and logged when `WP_CACHE_DEBUG` is enabled.
+- **Operation Counts**: Tracks cache hits and misses for performance analysis.
+
+### Backward Compatibility
+- **Version Checking**: Logs warnings if outdated versions of `Memcache` or `Memcached` are detected.
+
 ### Server Setup
 By default, the script connects to a Memcache or Memcached server running on `127.0.0.1` (localhost) at port `11211`. If your server is running on a different host or port, you need to modify the `addServer` line in the `WP_Object_Cache` class constructor.
 
