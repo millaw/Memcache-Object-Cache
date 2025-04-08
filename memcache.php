@@ -3,7 +3,7 @@
  * Memcache Object Cache
  *
  * This file provides an object cache implementation using Memcache or Memcached.
- * Place this file in wp-content/object-cache.php to enable caching.
+ * Place this file in wp-content/ and rename it to object-cache.php to enable caching.
  */
 
 // Detect Memcache(d) to use
@@ -11,12 +11,14 @@ if ( class_exists('Memcached') || class_exists('Memcache') ) {
     // Add error handling for addServer and validate inputs
     class WP_Object_Cache {
         private $cache;
+        private $is_connected = false;
 
         public function __construct() {
             $this->cache = class_exists('Memcached') ? new Memcached() : new Memcache();
-            $connected = $this->cache->addServer('127.0.0.1', 11211);
+            $this->is_connected = $this->cache->addServer('127.0.0.1', 11211);
 
-            if (!$connected) {
+            if (!$this->is_connected) {
+                error_log('Failed to connect to Memcache/Memcached server at 127.0.0.1:11211. Object caching is disabled.');
                 add_action('admin_notices', function() {
                     echo '<div class="error"><p>Failed to connect to Memcache/Memcached server at 127.0.0.1:11211. Object caching is disabled.</p></div>';
                 });
@@ -24,6 +26,7 @@ if ( class_exists('Memcached') || class_exists('Memcache') ) {
         }
 
         public function add($key, $data, $group = 'default', $expire = 0) {
+            if (!$this->is_connected) return false;
             $key = $this->validateKey($key);
             $group = $this->validateGroup($group);
             $key = $this->buildKey($key, $group);
@@ -31,6 +34,7 @@ if ( class_exists('Memcached') || class_exists('Memcache') ) {
         }
 
         public function get($key, $group = 'default') {
+            if (!$this->is_connected) return false;
             $key = $this->validateKey($key);
             $group = $this->validateGroup($group);
             $key = $this->buildKey($key, $group);
@@ -38,6 +42,7 @@ if ( class_exists('Memcached') || class_exists('Memcache') ) {
         }
 
         public function delete($key, $group = 'default') {
+            if (!$this->is_connected) return false;
             $key = $this->validateKey($key);
             $group = $this->validateGroup($group);
             $key = $this->buildKey($key, $group);
@@ -45,6 +50,7 @@ if ( class_exists('Memcached') || class_exists('Memcache') ) {
         }
 
         public function flush() {
+            if (!$this->is_connected) return false;
             return $this->cache->flush();
         }
 
@@ -90,6 +96,8 @@ if ( class_exists('Memcached') || class_exists('Memcache') ) {
 }
 
 // Initialize the object cache
-global $wp_object_cache;
-$wp_object_cache = new WP_Object_Cache();
+if (class_exists('WP_Object_Cache')) {
+    global $wp_object_cache;
+    $wp_object_cache = new WP_Object_Cache();
+}
 ?>
