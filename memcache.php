@@ -7,27 +7,39 @@
  */
 
 // Detect Memcache(d) to use
-if ( class_exists('Memcached') ) {
-    // Use Memcached if available
+if ( class_exists('Memcached') || class_exists('Memcache') ) {
+    // Add error handling for addServer and validate inputs
     class WP_Object_Cache {
         private $cache;
 
         public function __construct() {
-            $this->cache = new Memcached();
-            $this->cache->addServer('127.0.0.1', 11211);
+            $this->cache = class_exists('Memcached') ? new Memcached() : new Memcache();
+            $connected = $this->cache->addServer('127.0.0.1', 11211);
+
+            if (!$connected) {
+                add_action('admin_notices', function() {
+                    echo '<div class="error"><p>Failed to connect to Memcache/Memcached server at 127.0.0.1:11211. Object caching is disabled.</p></div>';
+                });
+            }
         }
 
         public function add($key, $data, $group = 'default', $expire = 0) {
+            $key = $this->validateKey($key);
+            $group = $this->validateGroup($group);
             $key = $this->buildKey($key, $group);
             return $this->cache->add($key, $data, $expire);
         }
 
         public function get($key, $group = 'default') {
+            $key = $this->validateKey($key);
+            $group = $this->validateGroup($group);
             $key = $this->buildKey($key, $group);
             return $this->cache->get($key);
         }
 
         public function delete($key, $group = 'default') {
+            $key = $this->validateKey($key);
+            $group = $this->validateGroup($group);
             $key = $this->buildKey($key, $group);
             return $this->cache->delete($key);
         }
@@ -39,38 +51,19 @@ if ( class_exists('Memcached') ) {
         private function buildKey($key, $group) {
             return $group . ':' . $key;
         }
-    }
-} elseif ( class_exists('Memcache') ) {
-    // Use Memcache if available
-    class WP_Object_Cache {
-        private $cache;
 
-        public function __construct() {
-            $this->cache = new Memcache();
-            $this->cache->addServer('127.0.0.1', 11211);
+        private function validateKey($key) {
+            if (!is_string($key) || empty($key)) {
+                throw new InvalidArgumentException('Cache key must be a non-empty string.');
+            }
+            return $key;
         }
 
-        public function add($key, $data, $group = 'default', $expire = 0) {
-            $key = $this->buildKey($key, $group);
-            return $this->cache->add($key, $data, false, $expire);
-        }
-
-        public function get($key, $group = 'default') {
-            $key = $this->buildKey($key, $group);
-            return $this->cache->get($key);
-        }
-
-        public function delete($key, $group = 'default') {
-            $key = $this->buildKey($key, $group);
-            return $this->cache->delete($key);
-        }
-
-        public function flush() {
-            return $this->cache->flush();
-        }
-
-        private function buildKey($key, $group) {
-            return $group . ':' . $key;
+        private function validateGroup($group) {
+            if (!is_string($group)) {
+                throw new InvalidArgumentException('Cache group must be a string.');
+            }
+            return $group;
         }
     }
 } else {
