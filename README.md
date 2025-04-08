@@ -37,5 +37,13 @@ If neither Memcache nor Memcached is available, the script will:
 - Disable object caching.
 - Display an admin notice in the WordPress dashboard indicating that caching is not enabled.
 
+## Updates
+
+### Error Handling
+- Added error handling for the `addServer` method to notify the admin if the connection to the Memcache/Memcached server fails.
+
+### Input Validation
+- Implemented validation for cache keys and groups to ensure they are valid strings. Invalid inputs will throw an `InvalidArgumentException`.
+
 ## License
-This project is open-source and available under the MIT License.
+This project is open-source and available under the GPLv3 License.
